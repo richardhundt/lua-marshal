@@ -465,8 +465,6 @@ static int mar_unpack(lua_State *L, const char* buf, size_t len, int idx)
 
 static int tbl_marshal(lua_State* L)
 {
-    int x = 1;
-    int e = *(char*)&x;
     const unsigned char m = MAR_MAGIC;
     mar_Buffer buf;
     lua_newtable(L);
@@ -474,7 +472,6 @@ static int tbl_marshal(lua_State* L)
 
     buf_init(L, &buf);
     buf_write(L, (void*)&m, 1, &buf);
-    buf_write(L, (void*)&e, 1, &buf);
     mar_pack(L, &buf, 1);
 
     buf_done(L, &buf);
@@ -483,36 +480,17 @@ static int tbl_marshal(lua_State* L)
 
 static int tbl_unmarshal(lua_State* L)
 {
-    int x = 1;
     size_t l;
     const char *s = luaL_checklstring(L, -1, &l);
 
     if (l < 2) luaL_error(L, "bad header");
     if (*(unsigned char *)s++ != MAR_MAGIC) luaL_error(L, "bad magic");
-    l -= 2;
+    l -= 1;
 
     lua_newtable(L);
     lua_newtable(L);
 
-    if (*(char*)&x != *s++) {
-        /* endianness mismatch so reverse the bytes */
-        char *p;
-        int n = l;
-        int i,j;
-        mar_Buffer buf;
-        buf_init(L, &buf);
-        buf_write(L, s, l, &buf);
-        p = buf.data;
-        /* stolen from lhf's lpack.c */
-        for (i=0, j=n-1, n=n/2; n--; i++, j--) {
-            char t=p[i]; p[i]=p[j]; p[j]=t;
-        }
-        mar_unpack(L, p, l, 1);
-        free(buf.data);
-    }
-    else {
-        mar_unpack(L, s, l, 1);
-    }
+    mar_unpack(L, s, l, 1);
 
     return 1;
 }

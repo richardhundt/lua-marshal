@@ -19,3 +19,4 @@ for userdata the __persist metatable hook can be used.
 
 The top level object must be a table. Metatables and function environments are not serialized.
 
+Cross endianness is not supported.
