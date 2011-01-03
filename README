@@ -1,0 +1,21 @@
+Fast table serialization for Lua
+
+require "marshal"
+
+Provides:
+
+  s = table.marshal(t)      - serializes a table to a byte stream
+  t = table.unmarshal(s)    - deserializes a byte stream to a table
+  t = table.clone(orig)     - deep clone a table
+
+Features:
+
+Serializes tables, which may contain cycles, Lua functions with upvalues and basic data types.
+
+Limitations:
+
+Coroutines are not serialized and nor are userdata, however support
+for userdata the __persist metatable hook can be used.
+
+The top level object must be a table. Metatables and function environments are not serialized.
+
