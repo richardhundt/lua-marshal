@@ -63,8 +63,8 @@ typedef struct mar_Buffer {
     char*  data;
 } mar_Buffer;
 
-static int mar_pack(lua_State *L, mar_Buffer *buf, int idx);
-static int mar_unpack(lua_State *L, const char* buf, size_t len, int idx);
+static int mar_pack(lua_State *L, mar_Buffer *buf, int *idx);
+static int mar_unpack(lua_State *L, const char* buf, size_t len, int *idx);
 
 static void buf_init(lua_State *L, mar_Buffer *buf)
 {
@@ -166,7 +166,7 @@ static void pack_value(lua_State *L, mar_Buffer *buf, int val, int *idx)
                 lua_remove(L, -2);
 
                 buf_init(L, &rec_buf);
-                mar_pack(L, &rec_buf, *idx);
+                mar_pack(L, &rec_buf, idx);
                 buf_done(L, &rec_buf);
 
                 rec_packed = lua_tolstring(L, -1, &rec_l);
@@ -184,7 +184,7 @@ static void pack_value(lua_State *L, mar_Buffer *buf, int val, int *idx)
 
                 lua_pushvalue(L, val);
                 buf_init(L, &rec_buf);
-                mar_pack(L, &rec_buf, *idx);
+                mar_pack(L, &rec_buf, idx);
                 buf_done(L, &rec_buf);
 
                 rec_packed = lua_tolstring(L, -1, &rec_l);
@@ -244,7 +244,7 @@ static void pack_value(lua_State *L, mar_Buffer *buf, int val, int *idx)
             }
 
             buf_init(L, &rec_buf);
-            mar_pack(L, &rec_buf, *idx);
+            mar_pack(L, &rec_buf, idx);
             buf_done(L, &rec_buf);
             rec_packed = lua_tolstring(L, -1, &rec_l);
 
@@ -289,7 +289,7 @@ static void pack_value(lua_State *L, mar_Buffer *buf, int val, int *idx)
                 lua_remove(L, -2);
 
                 buf_init(L, &rec_buf);
-                mar_pack(L, &rec_buf, *idx);
+                mar_pack(L, &rec_buf, idx);
                 buf_done(L, &rec_buf);
 
                 rec_packed = lua_tolstring(L, -1, &rec_l);
@@ -311,13 +311,14 @@ static void pack_value(lua_State *L, mar_Buffer *buf, int val, int *idx)
     }
 }
 
-static int mar_pack(lua_State *L, mar_Buffer *buf, int idx)
+static int mar_pack(lua_State *L, mar_Buffer *buf, int *idx)
 {
     /* size_t l; */
     lua_pushnil(L);
+
     while (lua_next(L, -2) != 0) {
-        pack_value(L, buf, -2, &idx);
-        pack_value(L, buf, -1, &idx);
+        pack_value(L, buf, -2, idx);
+        pack_value(L, buf, -1, idx);
         lua_pop(L, 1);
     }
     return 1;
@@ -363,13 +364,13 @@ static void unpack_value
             lua_newtable(L);
             lua_pushvalue(L, -1);
             lua_rawseti(L, 2, (*idx)++);
-            mar_unpack(L, *p, l, *idx);
+            mar_unpack(L, *p, l, idx);
             mar_incr_ptr(l);
         }
         else if (tag == MAR_TUSR) {
             mar_next_len(l, uint32_t);
             lua_newtable(L);
-            mar_unpack(L, *p, l, *idx);
+            mar_unpack(L, *p, l, idx);
             lua_rawgeti(L, -1, 1);
             lua_call(L, 0, 1);
             lua_remove(L, -2);
@@ -407,7 +408,7 @@ static void unpack_value
 
             mar_next_len(l, uint32_t);
             lua_newtable(L);
-            mar_unpack(L, *p, l, *idx);
+            mar_unpack(L, *p, l, idx);
             nups = lua_objlen(L, -1);
             for (i=1; i <= nups; i++) {
                 lua_rawgeti(L, -1, i);
@@ -429,7 +430,7 @@ static void unpack_value
         else if (tag == MAR_TUSR) {
             mar_next_len(l, uint32_t);
             lua_newtable(L);
-            mar_unpack(L, *p, l, *idx);
+            mar_unpack(L, *p, l, idx);
             lua_rawgeti(L, -1, 1);
             lua_call(L, 0, 1);
             lua_remove(L, -2);
@@ -450,14 +451,13 @@ static void unpack_value
     }
 }
 
-static int mar_unpack(lua_State *L, const char* buf, size_t len, int idx)
+static int mar_unpack(lua_State *L, const char* buf, size_t len, int *idx)
 {
     const char* p;
-
     p = buf;
     while (p - buf < len) {
-        unpack_value(L, buf, len, &p, &idx);
-        unpack_value(L, buf, len, &p, &idx);
+        unpack_value(L, buf, len, &p, idx);
+        unpack_value(L, buf, len, &p, idx);
         lua_settable(L, -3);
     }
     return 1;
@@ -466,13 +466,14 @@ static int mar_unpack(lua_State *L, const char* buf, size_t len, int idx)
 static int tbl_marshal(lua_State* L)
 {
     const unsigned char m = MAR_MAGIC;
+    int idx=1;
     mar_Buffer buf;
     lua_newtable(L);
     lua_pushvalue(L, 1);
 
     buf_init(L, &buf);
     buf_write(L, (void*)&m, 1, &buf);
-    mar_pack(L, &buf, 1);
+    mar_pack(L, &buf, &idx);
 
     buf_done(L, &buf);
     return 1;
@@ -482,7 +483,7 @@ static int tbl_unmarshal(lua_State* L)
 {
     size_t l;
     const char *s = luaL_checklstring(L, -1, &l);
-
+    int idx=1;
     if (l < 2) luaL_error(L, "bad header");
     if (*(unsigned char *)s++ != MAR_MAGIC) luaL_error(L, "bad magic");
     l -= 1;
@@ -490,7 +491,7 @@ static int tbl_unmarshal(lua_State* L)
     lua_newtable(L);
     lua_newtable(L);
 
-    mar_unpack(L, s, l, 1);
+    mar_unpack(L, s, l, &idx);
 
     return 1;
 }
