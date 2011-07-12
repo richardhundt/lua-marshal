@@ -484,7 +484,7 @@ static int tbl_unmarshal(lua_State* L)
     size_t l;
     const char *s = luaL_checklstring(L, -1, &l);
     int idx=1;
-    if (l < 2) luaL_error(L, "bad header");
+    if (l < 1) luaL_error(L, "bad header");
     if (*(unsigned char *)s++ != MAR_MAGIC) luaL_error(L, "bad magic");
     l -= 1;
 

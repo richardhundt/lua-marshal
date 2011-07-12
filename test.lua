@@ -112,6 +112,8 @@ assert(t1[1] == t2[1])
 assert(t1[2] == t2[2])
 assert(t1.b == t2.b)
 
+local t1 = table.clone({ })
+
 print "OK"
 
 --[[ micro-bench (~4.2 seconds on my laptop)
