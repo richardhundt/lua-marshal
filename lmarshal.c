@@ -76,7 +76,6 @@ static void buf_init(lua_State *L, mar_Buffer *buf)
 
 static void buf_done(lua_State* L, mar_Buffer *buf)
 {
-    lua_pushlstring(L, buf->data, buf->head);
     free(buf->data);
 }
 
@@ -145,8 +144,6 @@ static void pack_value(lua_State *L, mar_Buffer *buf, int val, int *idx)
         }
         else {
             mar_Buffer rec_buf;
-            const char* rec_packed;
-            size_t rec_l;
             lua_pop(L, 1);
             if (luaL_getmetafield(L, val, "__persist")) {
                 tag = MAR_TUSR;
@@ -167,13 +164,13 @@ static void pack_value(lua_State *L, mar_Buffer *buf, int val, int *idx)
 
                 buf_init(L, &rec_buf);
                 mar_pack(L, &rec_buf, idx);
-                buf_done(L, &rec_buf);
 
-                rec_packed = lua_tolstring(L, -1, &rec_l);
+
                 buf_write(L, (void*)&tag, MAR_CHR, buf);
-                buf_write(L, (void*)&rec_l, MAR_I32, buf);
-                buf_write(L, rec_packed, rec_l, buf);
-                lua_pop(L, 2);
+                buf_write(L, (void*)&rec_buf.head, MAR_I32, buf);
+                buf_write(L, rec_buf.data, rec_buf.head, buf);
+                buf_done(L, &rec_buf);
+                lua_pop(L, 1);
             }
             else {
                 tag = MAR_TVAL;
@@ -185,13 +182,13 @@ static void pack_value(lua_State *L, mar_Buffer *buf, int val, int *idx)
                 lua_pushvalue(L, val);
                 buf_init(L, &rec_buf);
                 mar_pack(L, &rec_buf, idx);
-                buf_done(L, &rec_buf);
 
-                rec_packed = lua_tolstring(L, -1, &rec_l);
                 buf_write(L, (void*)&tag, MAR_CHR, buf);
-                buf_write(L, (void*)&rec_l, MAR_I32, buf);
-                buf_write(L, rec_packed, rec_l, buf);
-                lua_pop(L, 2);
+                buf_write(L, (void*)&rec_buf.head, MAR_I32, buf);
+                buf_write(L, rec_buf.data,rec_buf.head, buf);
+                buf_done(L, &rec_buf);
+                lua_pop(L, 1);
+
             }
         }
         break;
@@ -209,8 +206,6 @@ static void pack_value(lua_State *L, mar_Buffer *buf, int val, int *idx)
         }
         else {
             mar_Buffer rec_buf;
-            const char* rec_packed;
-            size_t rec_l;
             int i;
             lua_Debug ar;
             lua_pop(L, 1);
@@ -223,13 +218,12 @@ static void pack_value(lua_State *L, mar_Buffer *buf, int val, int *idx)
             lua_pushvalue(L, val);
             buf_init(L, &rec_buf);
             lua_dump(L, (lua_Writer)buf_write, &rec_buf);
-            buf_done(L, &rec_buf);
-            rec_packed = lua_tolstring(L, -1, &rec_l);
 
             buf_write(L, (void*)&tag, MAR_CHR, buf);
-            buf_write(L, (void*)&rec_l, MAR_I32, buf);
-            buf_write(L, rec_packed, rec_l, buf);
-            lua_pop(L, 2);
+            buf_write(L, (void*)&rec_buf.head, MAR_I32, buf);
+	    buf_write(L, rec_buf.data, rec_buf.head, buf);
+	    buf_done(L, &rec_buf);
+	    lua_pop(L, 1);
 
             lua_pushvalue(L, val);
             lua_getinfo(L, ">uS", &ar);
@@ -245,12 +239,11 @@ static void pack_value(lua_State *L, mar_Buffer *buf, int val, int *idx)
 
             buf_init(L, &rec_buf);
             mar_pack(L, &rec_buf, idx);
-            buf_done(L, &rec_buf);
-            rec_packed = lua_tolstring(L, -1, &rec_l);
 
-            buf_write(L, (void*)&rec_l, MAR_I32, buf);
-            buf_write(L, rec_packed, rec_l, buf);
-            lua_pop(L, 2);
+            buf_write(L, (void*)&rec_buf.head, MAR_I32, buf);
+	    buf_write(L, rec_buf.data, rec_buf.head, buf);
+	    buf_done(L, &rec_buf);
+	    lua_pop(L, 1);
         }
 
         break;
@@ -268,8 +261,6 @@ static void pack_value(lua_State *L, mar_Buffer *buf, int val, int *idx)
         }
         else {
             mar_Buffer rec_buf;
-            const char* rec_packed;
-            size_t rec_l;
             lua_pop(L, 1);
             if (luaL_getmetafield(L, val, "__persist")) {
                 tag = MAR_TUSR;
@@ -290,13 +281,12 @@ static void pack_value(lua_State *L, mar_Buffer *buf, int val, int *idx)
 
                 buf_init(L, &rec_buf);
                 mar_pack(L, &rec_buf, idx);
-                buf_done(L, &rec_buf);
 
-                rec_packed = lua_tolstring(L, -1, &rec_l);
                 buf_write(L, (void*)&tag, MAR_CHR, buf);
-                buf_write(L, (void*)&rec_l, MAR_I32, buf);
-                buf_write(L, rec_packed, rec_l, buf);
-                lua_pop(L, 2);
+                buf_write(L, (void*)&rec_buf.head, MAR_I32, buf);
+		buf_write(L, rec_buf.data, rec_buf.head, buf);
+		buf_done(L, &rec_buf);
+		lua_pop(L, 1);
             }
             else {
                 tag = MAR_TVAL;
@@ -474,6 +464,7 @@ static int tbl_marshal(lua_State* L)
     buf_init(L, &buf);
     buf_write(L, (void*)&m, 1, &buf);
     mar_pack(L, &buf, &idx);
+    lua_pushlstring(L, buf.data, buf.head);
 
     buf_done(L, &buf);
     return 1;
