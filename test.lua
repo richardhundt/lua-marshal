@@ -1,10 +1,11 @@
-require "marshal"
+local marshal = require "marshal"
 
 local k = { "tkey" }
 local a = { "a", "b", "c", [k] = "tval" }
-local s = assert(table.marshal(a))
+local s = assert(marshal.encode(a))
 --print(string.format("%q", s))
-local t = table.unmarshal(s)
+local t = marshal.decode(s)
+--print(t)
 assert(t[1] == "a")
 assert(t[2] == "b")
 assert(t[3] == "c")
@@ -15,8 +16,8 @@ assert(_k[1] == "tkey")
 assert(t[_k] == "tval")
 
 local up = 69
-local s = table.marshal({ answer = 42, funky = function() return up end })
-local t = table.unmarshal(s)
+local s = marshal.encode({ answer = 42, funky = function() return up end })
+local t = marshal.decode(s)
 assert(t.answer == 42)
 assert(type(t.funky) == "function")
 assert(t.funky() == up)
@@ -25,8 +26,8 @@ local t = { answer = 42 }
 local c = { "cycle" }
 c.this = c
 t.here = c
-local s = table.marshal(t)
-local u = table.unmarshal(s)
+local s = marshal.encode(t)
+local u = marshal.decode(s)
 assert(u.answer == 42)
 assert(type(u.here) == "table")
 assert(u.here == u.here.this)
@@ -49,9 +50,9 @@ setmetatable(o, {
    end
 })
 
-local s = table.marshal({ o })
+local s = marshal.encode({ o })
 assert(seen_hook)
-local t = table.unmarshal(s)
+local t = marshal.decode(s)
 assert(#t == 1)
 local p = t[1]
 assert(p ~= o)
@@ -62,8 +63,8 @@ assert(type(getmetatable(p).__persist) == "function")
 
 local o = { 42 }
 local a = { o, o, o }
-local s = table.marshal(a)
-local t = table.unmarshal(s)
+local s = marshal.encode(a)
+local t = marshal.decode(s)
 assert(type(t[1]) == "table")
 assert(t[1] == t[2])
 assert(t[2] == t[3])
@@ -71,8 +72,8 @@ assert(t[2] == t[3])
 local u = { 42 }
 local f = function() return u end
 local a = { f, f, u, f }
-local s = table.marshal(a)
-local t = table.unmarshal(s)
+local s = marshal.encode(a)
+local t = marshal.decode(s)
 assert(type(t[1]) == "function")
 assert(t[1] == t[2])
 assert(t[2] == t[4])
@@ -83,8 +84,8 @@ assert(t[1]() == t[3])
 local u = function() return 42 end
 local f = function() return u end
 local a = { f, f, f, u }
-local s = table.marshal(a)
-local t = table.unmarshal(s)
+local s = marshal.encode(a)
+local t = marshal.decode(s)
 assert(type(t[1]) == "function")
 assert(t[1] == t[2])
 assert(t[2] == t[3])
@@ -101,27 +102,27 @@ debug.setmetatable(u, {
    end
 })
 
-local s = table.marshal{u}
-local t = table.unmarshal(s)
+local s = marshal.encode{u}
+local t = marshal.decode(s)
 assert(type(t[1]) == "userdata")
 
 local t1 = { 1, 'a', b = 'b' }
-local t2 = table.clone(t1)
+local t2 = marshal.clone(t1)
 
 assert(t1[1] == t2[1])
 assert(t1[2] == t2[2])
 assert(t1.b == t2.b)
 
-local t1 = table.clone({ })
+local t1 = marshal.clone({ })
 
 print "OK"
 
 --[[ micro-bench (~4.2 seconds on my laptop)
 local t = { a='a', b='b', c='c', d='d', hop='jump', skip='foo', answer=42 }
-local s = table.marshal(t)
+local s = marshal.encode(t)
 for i=1, 1000000 do
-   s = table.marshal(t)
-   t = table.unmarshal(s)
+   s = marshal.encode(t)
+   t = marshal.decode(s)
 end
 --]]
 

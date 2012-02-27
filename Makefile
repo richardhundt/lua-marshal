@@ -6,10 +6,20 @@ LUAINC= /usr/local/include
 LUALIB= $(LUA)
 LUABIN= /usr/local/bin
 
-# probably no need to change anything below here
-CFLAGS= $(INCS) $(WARN) -O3 $G -fPIC
 WARN= -ansi -pedantic -Wall
 INCS= -I$(LUAINC)
+
+CFLAGS=-O3
+LDFLAGS=
+
+OS_NAME=$(shell uname -s)
+MH_NAME=$(shell uname -m)
+
+ifeq ($(OS_NAME), Darwin)
+CFLAGS+=-bundle -undefined dynamic_lookup
+else ifeq ($(OS_NAME), Linux)
+CFLAGS+=-shared -fPIC
+endif
 
 MYNAME= marshal
 MYLIB= l$(MYNAME)
@@ -27,7 +37,7 @@ o:	$(MYLIB).o
 so:	$T
 
 $T:	$(OBJS)
-	$(CC) -o $@ -shared $(OBJS)
+	$(CC) $(CFLAGS) $(WARN) -o $@ $(OBJS)
 
 clean:
 	rm -f $(OBJS) $T

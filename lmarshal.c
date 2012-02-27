@@ -1,11 +1,11 @@
 /*
 * lmarshal.c
-* A Lua library for serializing and deserializing tables
+* A Lua library for serializing and deserializing Lua values
 * Richard Hundt <richardhundt@gmail.com>
 *
 * Provides:
-* s = table.marshal(t)      - serializes a table to a byte stream
-* t = table.unmarshal(s)    - deserializes a byte stream to a table
+* s = marshal.encode(t)    - serializes a value to a byte stream
+* t = marshal.decode(s)    - deserializes a byte stream to a value
 *
 * Limitations:
 * Coroutines are not serialized and nor are userdata, however support
@@ -303,9 +303,7 @@ static void pack_value(lua_State *L, mar_Buffer *buf, int val, int *idx)
 
 static int mar_pack(lua_State *L, mar_Buffer *buf, int *idx)
 {
-    /* size_t l; */
     lua_pushnil(L);
-
     while (lua_next(L, -2) != 0) {
         pack_value(L, buf, -2, idx);
         pack_value(L, buf, -1, idx);
@@ -453,7 +451,7 @@ static int mar_unpack(lua_State *L, const char* buf, size_t len, int *idx)
     return 1;
 }
 
-static int tbl_marshal(lua_State* L)
+static int mar_encode(lua_State* L)
 {
     const unsigned char m = MAR_MAGIC;
     int idx=1;
@@ -463,16 +461,18 @@ static int tbl_marshal(lua_State* L)
 
     buf_init(L, &buf);
     buf_write(L, (void*)&m, 1, &buf);
-    mar_pack(L, &buf, &idx);
+
+    pack_value(L, &buf, -1, &idx);
     lua_pushlstring(L, buf.data, buf.head);
 
     buf_done(L, &buf);
     return 1;
 }
 
-static int tbl_unmarshal(lua_State* L)
+static int mar_decode(lua_State* L)
 {
     size_t l;
+    const char *p;
     const char *s = luaL_checklstring(L, -1, &l);
     int idx=1;
     if (l < 1) luaL_error(L, "bad header");
@@ -480,31 +480,31 @@ static int tbl_unmarshal(lua_State* L)
     l -= 1;
 
     lua_newtable(L);
-    lua_newtable(L);
-
-    mar_unpack(L, s, l, &idx);
+    p = s;
+    unpack_value(L, s, l, &p, &idx);
 
     return 1;
 }
 
-static int tbl_clone(lua_State* L)
+static int mar_clone(lua_State* L)
 {
-    tbl_marshal(L);
-    tbl_unmarshal(L);
+    mar_encode(L);
+    mar_decode(L);
     return 1;
 }
 
 static const luaL_reg R[] =
 {
-    {"marshal",     tbl_marshal},
-    {"unmarshal",   tbl_unmarshal},
-    {"clone",       tbl_clone},
+    {"encode",      mar_encode},
+    {"decode",      mar_decode},
+    {"clone",       mar_clone},
     {NULL,	    NULL}
 };
 
 int luaopen_marshal(lua_State *L)
 {
-    luaL_openlib(L, LUA_TABLIBNAME, R, 0);
+    lua_newtable(L);
+    luaL_register(L, NULL, R);
     return 1;
 }
 
