@@ -15,6 +15,13 @@ assert(type(_k) == "table")
 assert(_k[1] == "tkey")
 assert(t[_k] == "tval")
 
+local o = { }
+o.__index = o
+local s = marshal.encode(o)
+local t = marshal.decode(s)
+assert(type(t) == 'table')
+assert(t.__index == t)
+
 local up = 69
 local s = marshal.encode({ answer = 42, funky = function() return up end })
 local t = marshal.decode(s)
@@ -50,11 +57,9 @@ setmetatable(o, {
    end
 })
 
-local s = marshal.encode({ o })
+local s = marshal.encode(o)
 assert(seen_hook)
-local t = marshal.decode(s)
-assert(#t == 1)
-local p = t[1]
+local p = marshal.decode(s)
 assert(p ~= o)
 assert(p.x == o.x)
 assert(p.y == o.y)
@@ -115,6 +120,16 @@ assert(t1.b == t2.b)
 
 local t1 = marshal.clone({ })
 
+local answer = 42
+local f1 = function()
+   return "answer: "..answer
+end
+local s1 = marshal.encode(f1)
+local f2 = marshal.decode(s1)
+assert(f2() == 'answer: 42')
+
+assert(marshal.decode(marshal.encode()) == nil)
+assert(marshal.decode(marshal.encode(nil)) == nil)
 print "OK"
 
 --[[ micro-bench (~4.2 seconds on my laptop)
