@@ -6,14 +6,24 @@ local marshal = require "marshal"
 Provides:
 ---------
 
-* s = marshal.encode(v)    - serializes a value to a byte stream
-* t = marshal.decode(s)    - deserializes a byte stream to a value
-* t = marshal.clone(orig)  - deep clone a value (deep for tables and functions)
+* s = marshal.encode(v[, constants])    - serializes a value to a byte stream
+* t = marshal.decode(s[, constants])    - deserializes a byte stream to a value
+* t = marshal.clone(orig[, constants])  - deep clone a value (deep for tables and functions)
 
 Features:
 ---------
 
 Serializes tables, which may contain cycles, Lua functions with upvalues and basic data types.
+
+All functions take an optional constants table which, if encountered during serialization,
+are simply referenced from the constants table passed during deserialization. For example:
+
+```Lua
+local orig = { answer = 42, print = print }
+local pack = marshal.encode(orig, { print })
+local copy = marshal.decode(pack, { print })
+assert(copy.print == print)
+```
 
 Hooks
 -----
@@ -61,6 +71,9 @@ Coroutines are not serialized. Userdata doesn't serialize either
 however support for userdata the `__persist` metatable hook can be used.
 
 Metatables and function environments are not serialized.
+
+Attempt to serialize C functions, threads and userdata without a `__persist` hook
+raises an exception.
 
 Serialized code is not portable.
 

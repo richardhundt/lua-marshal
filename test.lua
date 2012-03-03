@@ -6,9 +6,11 @@ local s = assert(marshal.encode(a))
 --print(string.format("%q", s))
 local t = marshal.decode(s)
 --print(t)
+table.foreach(t, print)
 assert(t[1] == "a")
 assert(t[2] == "b")
 assert(t[3] == "c")
+---[==[
 assert(#t == 3)
 local _k = next(t, #t)
 assert(type(_k) == "table")
@@ -48,18 +50,20 @@ setmetatable(o, {
       local y = o.y
       seen_hook = true
       local mt = getmetatable(o)
+      local print = print
       return function()
          local o = { }
          o.x = x
          o.y = y
+         print("constant table: 'print'")
          return setmetatable(o, mt)
       end
    end
 })
 
-local s = marshal.encode(o)
+local s = marshal.encode(o, { print })
 assert(seen_hook)
-local p = marshal.decode(s)
+local p = marshal.decode(s, { print })
 assert(p ~= o)
 assert(p.x == o.x)
 assert(p.y == o.y)
@@ -112,8 +116,12 @@ local t = marshal.decode(s)
 assert(type(t[1]) == "userdata")
 
 local t1 = { 1, 'a', b = 'b' }
+table.foreach(t1, print)
 local t2 = marshal.clone(t1)
-
+print('---')
+table.foreach(t1, print)
+print('---')
+table.foreach(t2, print)
 assert(t1[1] == t2[1])
 assert(t1[2] == t2[2])
 assert(t1.b == t2.b)
@@ -140,4 +148,4 @@ for i=1, 1000000 do
    t = marshal.decode(s)
 end
 --]]
-
+--]==]
