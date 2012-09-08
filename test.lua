@@ -138,6 +138,11 @@ assert(f2() == 'answer: 42')
 
 assert(marshal.decode(marshal.encode()) == nil)
 assert(marshal.decode(marshal.encode(nil)) == nil)
+
+local s1 = marshal.encode(pt)
+local p2 = marshal.decode(s1)
+print(string.format('%q',s1))
+
 print "OK"
 
 --[[ micro-bench (~4.2 seconds on my laptop)
@@ -149,3 +154,4 @@ for i=1, 1000000 do
 end
 --]]
 --]==]
+

@@ -457,15 +457,19 @@ static int mar_encode(lua_State* L)
     else if (!lua_istable(L, 2)) {
         luaL_error(L, "bad argument #2 to encode (expected table)");
     }
+    lua_settop(L, 2);
 
     len = lua_objlen(L, 2);
     lua_newtable(L);
     for (idx = 1; idx <= len; idx++) {
         lua_rawgeti(L, 2, idx);
+        if (lua_isnil(L, -1)) {
+            lua_pop(L, 1);
+            continue;
+        }
         lua_pushinteger(L, idx);
         lua_rawset(L, SEEN_IDX);
     }
-
     lua_pushvalue(L, 1);
 
     buf_init(L, &buf);
@@ -500,6 +504,7 @@ static int mar_decode(lua_State* L)
     else if (!lua_istable(L, 2)) {
         luaL_error(L, "bad argument #2 to decode (expected table)");
     }
+    lua_settop(L, 2);
 
     len = lua_objlen(L, 2);
     lua_newtable(L);
