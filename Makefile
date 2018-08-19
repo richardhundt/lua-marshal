@@ -9,7 +9,7 @@ LUABIN= /usr/local/bin
 WARN= -ansi -pedantic -Wall
 INCS= -I$(LUAINC)
 
-CFLAGS=-O3
+CFLAGS=-O3 $(INCS)
 LDFLAGS=
 
 OS_NAME=$(shell uname -s)
