@@ -1,5 +1,11 @@
 local marshal = require "marshal"
 
+table.foreach = function(t, func)
+    for k, v in pairs(t) do
+        func(k, v)
+    end
+end
+
 local k = { "tkey" }
 local a = { "a", "b", "c", [k] = "tval" }
 local s = assert(marshal.encode(a))
