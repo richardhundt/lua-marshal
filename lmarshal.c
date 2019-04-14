@@ -213,7 +213,7 @@ static void mar_encode_value(lua_State *L, mar_Buffer *buf, int val, size_t *idx
 
             lua_pushvalue(L, -1);
             buf_init(L, &rec_buf);
-            lua_dump(L, (lua_Writer)buf_write, &rec_buf);
+            lua_dump(L, (lua_Writer)buf_write, &rec_buf, 0);
 
             buf_write(L, (void*)&tag, MAR_CHR, buf);
             buf_write(L, (void*)&rec_buf.head, MAR_I32, buf);
@@ -378,7 +378,7 @@ static void mar_decode_value
             dec_buf.size = l;
             dec_buf.head = l;
             dec_buf.seek = 0;
-            lua_load(L, (lua_Reader)buf_read, &dec_buf, "=marshal");
+            lua_load(L, (lua_Reader)buf_read, &dec_buf, "=marshal", "bt");
             mar_incr_ptr(l);
 
             lua_pushvalue(L, -1);
@@ -387,7 +387,7 @@ static void mar_decode_value
             mar_next_len(l, uint32_t);
             lua_newtable(L);
             mar_decode_table(L, *p, l, idx);
-            nups = lua_objlen(L, -1);
+            nups = luaL_len(L, -1);
             for (i=1; i <= nups; i++) {
                 lua_rawgeti(L, -1, i);
                 lua_setupvalue(L, -3, i);
@@ -459,7 +459,7 @@ static int mar_encode(lua_State* L)
     }
     lua_settop(L, 2);
 
-    len = lua_objlen(L, 2);
+    len = luaL_len(L, 2);
     lua_newtable(L);
     for (idx = 1; idx <= len; idx++) {
         lua_rawgeti(L, 2, idx);
@@ -506,7 +506,7 @@ static int mar_decode(lua_State* L)
     }
     lua_settop(L, 2);
 
-    len = lua_objlen(L, 2);
+    len = luaL_len(L, 2);
     lua_newtable(L);
     for (idx = 1; idx <= len; idx++) {
         lua_rawgeti(L, 2, idx);
@@ -530,7 +530,7 @@ static int mar_clone(lua_State* L)
     return 1;
 }
 
-static const luaL_reg R[] =
+static const luaL_Reg R[] =
 {
     {"encode",      mar_encode},
     {"decode",      mar_decode},
@@ -540,8 +540,7 @@ static const luaL_reg R[] =
 
 int luaopen_marshal(lua_State *L)
 {
-    lua_newtable(L);
-    luaL_register(L, NULL, R);
+    luaL_newlib(L, R);
     return 1;
 }
 
